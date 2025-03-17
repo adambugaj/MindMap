@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useDomainContext } from "@/context/DomainContext";
 import DomainNode from "./DomainNode";
+import DependencyLine from "./DependencyLine";
 import { Domain } from "@/types/domain";
 
 interface MindMapCanvasProps {
@@ -22,20 +23,52 @@ const MindMapCanvas = ({
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Auto-arrange domains in a single row as a numbered list
+  // Auto-arrange domains in a hierarchical diagram
   useEffect(() => {
     if (domains.length > 0) {
-      const DOMAIN_WIDTH = 300; // Width of domain card + margin
-      const DOMAIN_HEIGHT = 350; // Height of domain card + margin
-      const START_X = 50;
+      const CENTER_X = 600;
       const START_Y = 100;
+      const LEVEL_HEIGHT = 200;
+      const HORIZONTAL_SPACING = 320;
 
-      domains.forEach((domain, index) => {
-        updateDomainPosition(domain.id, {
-          x: START_X,
-          y: START_Y + index * DOMAIN_HEIGHT,
-        });
+      // First level - main domain
+      const mainDomain = domains[0];
+      updateDomainPosition(mainDomain.id, {
+        x: CENTER_X,
+        y: START_Y,
       });
+
+      // Second level - 3 domains in a row
+      const secondLevelCount = Math.min(3, domains.length - 1);
+      const secondLevelStartX =
+        CENTER_X - ((secondLevelCount - 1) * HORIZONTAL_SPACING) / 2;
+
+      for (let i = 0; i < secondLevelCount; i++) {
+        const domain = domains[i + 1];
+        if (domain) {
+          updateDomainPosition(domain.id, {
+            x: secondLevelStartX + i * HORIZONTAL_SPACING,
+            y: START_Y + LEVEL_HEIGHT,
+          });
+        }
+      }
+
+      // Third level - remaining domains distributed evenly
+      const thirdLevelCount = Math.max(0, domains.length - 4);
+      if (thirdLevelCount > 0) {
+        const thirdLevelStartX =
+          CENTER_X - ((thirdLevelCount - 1) * HORIZONTAL_SPACING) / 2;
+
+        for (let i = 0; i < thirdLevelCount; i++) {
+          const domain = domains[i + 4];
+          if (domain) {
+            updateDomainPosition(domain.id, {
+              x: thirdLevelStartX + i * HORIZONTAL_SPACING,
+              y: START_Y + LEVEL_HEIGHT * 2,
+            });
+          }
+        }
+      }
     }
   }, [domains, updateDomainPosition]);
 
@@ -112,9 +145,56 @@ const MindMapCanvas = ({
     onScaleChange(newScale);
   };
 
-  // No dependency lines to render
+  // Render dependency lines between nodes
   const renderDependencyLines = () => {
-    return [];
+    const lines = [];
+
+    if (domains.length > 0) {
+      const mainDomain = domains[0];
+
+      // Connect main domain to second level domains
+      for (let i = 1; i < Math.min(4, domains.length); i++) {
+        const childDomain = domains[i];
+        lines.push(
+          <DependencyLine
+            key={`${mainDomain.id}-${childDomain.id}`}
+            startX={mainDomain.position.x + 140} // Center of card
+            startY={mainDomain.position.y + 150} // Bottom of card
+            endX={childDomain.position.x + 140} // Center of card
+            endY={childDomain.position.y} // Top of card
+            showArrow={true}
+          />,
+        );
+      }
+
+      // Connect second level domains to third level domains
+      for (let i = 1; i < Math.min(4, domains.length); i++) {
+        const parentDomain = domains[i];
+        const childStartIdx = 4 + (i - 1) * 3;
+
+        for (
+          let j = childStartIdx;
+          j < Math.min(childStartIdx + 3, domains.length);
+          j++
+        ) {
+          const childDomain = domains[j];
+          if (childDomain) {
+            lines.push(
+              <DependencyLine
+                key={`${parentDomain.id}-${childDomain.id}`}
+                startX={parentDomain.position.x + 140} // Center of card
+                startY={parentDomain.position.y + 150} // Bottom of card
+                endX={childDomain.position.x + 140} // Center of card
+                endY={childDomain.position.y} // Top of card
+                showArrow={true}
+              />,
+            );
+          }
+        }
+      }
+    }
+
+    return lines;
   };
 
   return (
@@ -149,10 +229,10 @@ const MindMapCanvas = ({
             />
           </div>
         ))}
-      </div>
 
-      {/* Render dependency lines */}
-      {renderDependencyLines()}
+        {/* Render dependency lines */}
+        {renderDependencyLines()}
+      </div>
     </div>
   );
 };
