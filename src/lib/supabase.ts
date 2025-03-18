@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = "https://hylkeiigpilltfwlnrcg.supabase.co";
+const supabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5bGtlaWlncGlsbHRmd2xucmNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyMTcxMDMsImV4cCI6MjA1Nzc5MzEwM30.y21GkS4rSaja6PQO81EZRY9LjyX0a3Gq81Gt4nLgOVg";
 
 // Add fallback for development or if env vars are missing
 if (!supabaseUrl || !supabaseAnonKey) {

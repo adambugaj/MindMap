@@ -1,0 +1,22 @@
+-- SQL commands to manually add domains via Supabase dashboard SQL editor
+
+-- Run this SQL in the Supabase SQL Editor (https://hylkeiigpilltfwlnrcg.supabase.co/project/sql)
+
+INSERT INTO domains (id, name, url, position_x, position_y, created_at, category)
+VALUES
+  (gen_random_uuid(), 'finansowyplac.pl', 'https://finansowyplac.pl', 50, 100, now(), 'finance'),
+  (gen_random_uuid(), 'kredytjuzdzis.pl', 'https://kredytjuzdzis.pl', 200, 100, now(), 'finance'),
+  (gen_random_uuid(), 'kredytoweprzypadki.pl', 'https://kredytoweprzypadki.pl', 350, 100, now(), 'finance'),
+  (gen_random_uuid(), 'kredytnazycie.pl', 'https://kredytnazycie.pl', 500, 100, now(), 'finance'),
+  (gen_random_uuid(), 'toseemore.pl', 'https://toseemore.pl', 50, 250, now(), 'general'),
+  (gen_random_uuid(), 'access-technology.net', 'https://access-technology.net', 200, 250, now(), 'tech'),
+  (gen_random_uuid(), 'LatestExam.de', 'https://LatestExam.de', 350, 250, now(), 'education'),
+  (gen_random_uuid(), 'ushops.net', 'https://ushops.net', 500, 250, now(), 'ecommerce'),
+  (gen_random_uuid(), 'seekphp.com', 'https://seekphp.com', 50, 400, now(), 'tech'),
+  (gen_random_uuid(), 'bpmplumbing.com', 'https://bpmplumbing.com', 200, 400, now(), 'services'),
+  (gen_random_uuid(), 'serwisantdrukarek.pl', 'https://serwisantdrukarek.pl', 350, 400, now(), 'services'),
+  (gen_random_uuid(), 'dermatologholistyczny.pl', 'https://dermatologholistyczny.pl', 500, 400, now(), 'health'),
+  (gen_random_uuid(), 'xcomputer.site', 'https://xcomputer.site', 50, 550, now(), 'tech'),
+  (gen_random_uuid(), 'latestexam.de', 'https://latestexam.de', 200, 550, now(), 'education'),
+  (gen_random_uuid(), 'randkawedwoje.pl', 'https://randkawedwoje.pl', 350, 550, now(), 'dating'),
+  (gen_random_uuid(), 'portalrandkowy24.pl', 'https://portalrandkowy24.pl', 500, 550, now(), 'dating');

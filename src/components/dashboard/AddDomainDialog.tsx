@@ -33,7 +33,7 @@ const AddDomainDialog = ({
 
   const { addDomain, addBulkDomains } = useDomainContext();
 
-  const handleSingleSubmit = (e: React.FormEvent) => {
+  const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -47,11 +47,17 @@ const AddDomainDialog = ({
       new URL(url);
 
       // Add domain
-      addDomain({
-        name,
-        url,
-        position: initialPosition,
-      });
+      try {
+        await addDomain({
+          name,
+          url,
+          position: initialPosition,
+        });
+      } catch (addErr) {
+        console.error("Error adding domain:", addErr);
+        setError("Failed to add domain. Please try again.");
+        return;
+      }
 
       // Reset form and close dialog
       setName("");
@@ -63,7 +69,7 @@ const AddDomainDialog = ({
     }
   };
 
-  const handleBulkSubmit = (e: React.FormEvent) => {
+  const handleBulkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!bulkText.trim()) {
@@ -124,7 +130,13 @@ const AddDomainDialog = ({
     }
 
     // Add all domains
-    addBulkDomains(domains);
+    try {
+      await addBulkDomains(domains);
+    } catch (addErr) {
+      console.error("Error adding bulk domains:", addErr);
+      setError("Failed to add domains. Please try again.");
+      return;
+    }
 
     // Reset and close
     setBulkText("");

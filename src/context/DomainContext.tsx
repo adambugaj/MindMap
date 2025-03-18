@@ -49,6 +49,7 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
 
         if (error) {
           console.error("Error fetching domains:", error);
+          setLoading(false);
           return;
         }
 
@@ -58,11 +59,12 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
             id: domain.id,
             name: domain.name,
             url: domain.url,
-            position: domain.position,
-            tasks: domain.tasks,
+            position: { x: domain.position_x || 0, y: domain.position_y || 0 },
+            tasks: DEFAULT_TASKS, // Use default tasks since the column doesn't exist
             createdAt: domain.created_at,
           }));
           setDomains(transformedDomains);
+          setLoading(false);
         } else {
           // If no domains in database, add default domains
           const defaultDomains = [
@@ -94,22 +96,48 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
             created_at: domain.createdAt,
           }));
 
-          const { error: insertError } = await supabase
-            .from("domains")
-            .insert(supabaseDomains);
+          try {
+            const { error: insertError } = await supabase
+              .from("domains")
+              .insert(supabaseDomains);
 
-          if (insertError) {
-            console.error(
-              "Error adding default domains to Supabase:",
-              insertError,
-            );
+            if (insertError) {
+              console.error(
+                "Error adding default domains to Supabase:",
+                insertError,
+              );
+            }
+
+            setDomains(defaultDomains);
+          } catch (insertErr) {
+            console.error("Error inserting domains:", insertErr);
+            // Try to fetch domains again in case they were added by another process
+            const { data: refetchData } = await supabase
+              .from("domains")
+              .select("*")
+              .order("created_at", { ascending: false });
+
+            if (refetchData && refetchData.length > 0) {
+              const transformedDomains = refetchData.map((domain) => ({
+                id: domain.id,
+                name: domain.name,
+                url: domain.url,
+                position: {
+                  x: domain.position_x || 0,
+                  y: domain.position_y || 0,
+                },
+                tasks: DEFAULT_TASKS,
+                createdAt: domain.created_at,
+              }));
+              setDomains(transformedDomains);
+            } else {
+              setDomains(defaultDomains);
+            }
           }
-
-          setDomains(defaultDomains);
+          setLoading(false);
         }
       } catch (error) {
         console.error("Error in fetchDomains:", error);
-      } finally {
         setLoading(false);
       }
     };
@@ -141,9 +169,10 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
         id: newDomain.id,
         name: newDomain.name,
         url: newDomain.url,
-        position: newDomain.position,
-        tasks: newDomain.tasks,
+        position_x: newDomain.position.x,
+        position_y: newDomain.position.y,
         created_at: newDomain.createdAt,
+        category: "general",
       });
 
       if (error) {
@@ -166,8 +195,8 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
         .update({
           name: updatedDomain.name,
           url: updatedDomain.url,
-          position: updatedDomain.position,
-          tasks: updatedDomain.tasks,
+          position_x: updatedDomain.position.x,
+          position_y: updatedDomain.position.y,
         })
         .eq("id", updatedDomain.id);
 
@@ -195,7 +224,7 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
       // Update position in Supabase
       const { error } = await supabase
         .from("domains")
-        .update({ position })
+        .update({ position_x: position.x, position_y: position.y })
         .eq("id", id);
 
       if (error) {
@@ -228,16 +257,8 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
         task.id === taskId ? { ...task, completed } : task,
       );
 
-      // Update tasks in Supabase
-      const { error } = await supabase
-        .from("domains")
-        .update({ tasks: updatedTasks })
-        .eq("id", domainId);
-
-      if (error) {
-        console.error("Error updating task status in Supabase:", error);
-        return;
-      }
+      // Store tasks in local state only since the tasks column doesn't exist in the database
+      // No Supabase update needed for tasks
 
       // Update local state
       setDomains(
@@ -258,16 +279,8 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
 
   const updateDomainTasks = async (domainId: string, tasks: Task[]) => {
     try {
-      // Update tasks in Supabase
-      const { error } = await supabase
-        .from("domains")
-        .update({ tasks })
-        .eq("id", domainId);
-
-      if (error) {
-        console.error("Error updating domain tasks in Supabase:", error);
-        return;
-      }
+      // Store tasks in local state only since the tasks column doesn't exist in the database
+      // No Supabase update needed for tasks
 
       // Update local state
       setDomains(
@@ -294,16 +307,8 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
 
       const updatedTasks = domain.tasks.filter((task) => task.id !== taskId);
 
-      // Update tasks in Supabase
-      const { error } = await supabase
-        .from("domains")
-        .update({ tasks: updatedTasks })
-        .eq("id", domainId);
-
-      if (error) {
-        console.error("Error removing domain task in Supabase:", error);
-        return;
-      }
+      // Store tasks in local state only since the tasks column doesn't exist in the database
+      // No Supabase update needed for tasks
 
       // Update local state
       setDomains(
@@ -355,9 +360,10 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
         id: domain.id,
         name: domain.name,
         url: domain.url,
-        position: domain.position,
-        tasks: domain.tasks,
+        position_x: domain.position.x,
+        position_y: domain.position.y,
         created_at: domain.createdAt,
+        category: "general",
       }));
 
       const { error } = await supabase.from("domains").insert(supabaseDomains);
