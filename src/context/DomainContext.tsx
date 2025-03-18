@@ -31,7 +31,8 @@ export const useDomainContext = () => {
   return context;
 };
 
-export function DomainProvider({ children }: { children: React.ReactNode }) {
+// Using function declaration for consistent component exports to work with Fast Refresh
+function DomainProvider({ children }: { children: React.ReactNode }) {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -344,3 +345,6 @@ export function DomainProvider({ children }: { children: React.ReactNode }) {
     </DomainContext.Provider>
   );
 }
+
+// Export the DomainProvider component
+export { DomainProvider };

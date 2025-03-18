@@ -12,7 +12,7 @@ if (process.env.TEMPO === "true") {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: "/",
+  base: "",
   optimizeDeps: {
     entries: ["src/main.tsx", "src/tempobook/**/*"],
   },
