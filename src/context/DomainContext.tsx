@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Domain, DEFAULT_TASKS, Task } from "@/types/domain";
+import { supabase } from "@/lib/supabase";
+import { v4 as uuidv4 } from "uuid";
 
 interface DomainContextType {
   domains: Domain[];
@@ -29,196 +31,300 @@ export const useDomainContext = () => {
   return context;
 };
 
-export const DomainProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [domains, setDomains] = useState<Domain[]>(() => {
-    const savedDomains = localStorage.getItem("domains");
-    return savedDomains
-      ? JSON.parse(savedDomains)
-      : [
-          {
-            id: "1",
-            name: "finansowyplac.pl",
-            url: "https://finansowyplac.pl",
-            position: { x: 50, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "2",
-            name: "kredytjuzdzis.pl",
-            url: "https://kredytjuzdzis.pl",
-            position: { x: 350, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "3",
-            name: "kredytoweprzypadki.pl",
-            url: "https://kredytoweprzypadki.pl",
-            position: { x: 650, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "4",
-            name: "kredytnazycie.pl",
-            url: "https://kredytnazycie.pl",
-            position: { x: 950, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "5",
-            name: "toseemore.pl",
-            url: "https://toseemore.pl",
-            position: { x: 1250, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "6",
-            name: "access-technology.net",
-            url: "https://access-technology.net",
-            position: { x: 1550, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "7",
-            name: "LatestExam.de",
-            url: "https://LatestExam.de",
-            position: { x: 1850, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "8",
-            name: "ushops.net",
-            url: "https://ushops.net",
-            position: { x: 2150, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "9",
-            name: "seekphp.com",
-            url: "https://seekphp.com",
-            position: { x: 2450, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "10",
-            name: "bpmplumbing.com",
-            url: "https://bpmplumbing.com",
-            position: { x: 2750, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "11",
-            name: "serwisantdrukarek.pl",
-            url: "https://serwisantdrukarek.pl",
-            position: { x: 3050, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "12",
-            name: "dermatologholistyczny.pl",
-            url: "https://dermatologholistyczny.pl",
-            position: { x: 3350, y: 100 },
-            tasks: DEFAULT_TASKS,
-            createdAt: new Date().toISOString(),
-          },
-        ];
-  });
+export function DomainProvider({ children }: { children: React.ReactNode }) {
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch domains from Supabase on component mount
   useEffect(() => {
-    localStorage.setItem("domains", JSON.stringify(domains));
-  }, [domains]);
+    const fetchDomains = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("domains")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-  const addDomain = (domain: Omit<Domain, "id" | "createdAt" | "tasks">) => {
+        if (error) {
+          console.error("Error fetching domains:", error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Transform the data to match our Domain type
+          const transformedDomains = data.map((domain) => ({
+            id: domain.id,
+            name: domain.name,
+            url: domain.url,
+            position: domain.position,
+            tasks: domain.tasks,
+            createdAt: domain.created_at,
+          }));
+          setDomains(transformedDomains);
+        } else {
+          // If no domains in database, add default domains
+          const defaultDomains = [
+            {
+              id: uuidv4(),
+              name: "finansowyplac.pl",
+              url: "https://finansowyplac.pl",
+              position: { x: 50, y: 100 },
+              tasks: DEFAULT_TASKS,
+              createdAt: new Date().toISOString(),
+            },
+            {
+              id: uuidv4(),
+              name: "kredytjuzdzis.pl",
+              url: "https://kredytjuzdzis.pl",
+              position: { x: 350, y: 100 },
+              tasks: DEFAULT_TASKS,
+              createdAt: new Date().toISOString(),
+            },
+          ];
+
+          // Add default domains to Supabase
+          for (const domain of defaultDomains) {
+            await supabase.from("domains").insert({
+              id: domain.id,
+              name: domain.name,
+              url: domain.url,
+              position: domain.position,
+              tasks: domain.tasks,
+              created_at: domain.createdAt,
+            });
+          }
+
+          setDomains(defaultDomains);
+        }
+      } catch (error) {
+        console.error("Error in fetchDomains:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDomains();
+  }, []);
+
+  // Sync domains with Supabase whenever they change
+  useEffect(() => {
+    // Skip on initial load when domains are being fetched
+    if (loading) return;
+
+    // We don't need to sync here as each individual operation will update Supabase
+  }, [domains, loading]);
+
+  const addDomain = async (
+    domain: Omit<Domain, "id" | "createdAt" | "tasks">,
+  ) => {
     const newDomain: Domain = {
       ...domain,
-      id: Date.now().toString(),
+      id: uuidv4(),
       tasks: DEFAULT_TASKS,
       createdAt: new Date().toISOString(),
     };
-    setDomains([...domains, newDomain]);
+
+    try {
+      // Add to Supabase
+      const { error } = await supabase.from("domains").insert({
+        id: newDomain.id,
+        name: newDomain.name,
+        url: newDomain.url,
+        position: newDomain.position,
+        tasks: newDomain.tasks,
+        created_at: newDomain.createdAt,
+      });
+
+      if (error) {
+        console.error("Error adding domain to Supabase:", error);
+        return;
+      }
+
+      // Update local state
+      setDomains([...domains, newDomain]);
+    } catch (error) {
+      console.error("Error in addDomain:", error);
+    }
   };
 
-  const updateDomain = (updatedDomain: Domain) => {
-    setDomains(
-      domains.map((domain) =>
-        domain.id === updatedDomain.id ? updatedDomain : domain,
-      ),
-    );
+  const updateDomain = async (updatedDomain: Domain) => {
+    try {
+      // Update in Supabase
+      const { error } = await supabase
+        .from("domains")
+        .update({
+          name: updatedDomain.name,
+          url: updatedDomain.url,
+          position: updatedDomain.position,
+          tasks: updatedDomain.tasks,
+        })
+        .eq("id", updatedDomain.id);
+
+      if (error) {
+        console.error("Error updating domain in Supabase:", error);
+        return;
+      }
+
+      // Update local state
+      setDomains(
+        domains.map((domain) =>
+          domain.id === updatedDomain.id ? updatedDomain : domain,
+        ),
+      );
+    } catch (error) {
+      console.error("Error in updateDomain:", error);
+    }
   };
 
-  const updateDomainPosition = (
+  const updateDomainPosition = async (
     id: string,
     position: { x: number; y: number },
   ) => {
-    setDomains(
-      domains.map((domain) =>
-        domain.id === id ? { ...domain, position } : domain,
-      ),
-    );
+    try {
+      // Update position in Supabase
+      const { error } = await supabase
+        .from("domains")
+        .update({ position })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error updating domain position in Supabase:", error);
+        return;
+      }
+
+      // Update local state
+      setDomains(
+        domains.map((domain) =>
+          domain.id === id ? { ...domain, position } : domain,
+        ),
+      );
+    } catch (error) {
+      console.error("Error in updateDomainPosition:", error);
+    }
   };
 
-  const updateTaskStatus = (
+  const updateTaskStatus = async (
     domainId: string,
     taskId: string,
     completed: boolean,
   ) => {
-    setDomains(
-      domains.map((domain) => {
-        if (domain.id === domainId) {
-          return {
-            ...domain,
-            tasks: domain.tasks.map((task) =>
-              task.id === taskId ? { ...task, completed } : task,
-            ),
-          };
-        }
-        return domain;
-      }),
-    );
+    try {
+      // Find the domain and update the task
+      const domain = domains.find((d) => d.id === domainId);
+      if (!domain) return;
+
+      const updatedTasks = domain.tasks.map((task) =>
+        task.id === taskId ? { ...task, completed } : task,
+      );
+
+      // Update tasks in Supabase
+      const { error } = await supabase
+        .from("domains")
+        .update({ tasks: updatedTasks })
+        .eq("id", domainId);
+
+      if (error) {
+        console.error("Error updating task status in Supabase:", error);
+        return;
+      }
+
+      // Update local state
+      setDomains(
+        domains.map((domain) => {
+          if (domain.id === domainId) {
+            return {
+              ...domain,
+              tasks: updatedTasks,
+            };
+          }
+          return domain;
+        }),
+      );
+    } catch (error) {
+      console.error("Error in updateTaskStatus:", error);
+    }
   };
 
-  const updateDomainTasks = (domainId: string, tasks: Task[]) => {
-    setDomains(
-      domains.map((domain) => {
-        if (domain.id === domainId) {
-          return {
-            ...domain,
-            tasks,
-          };
-        }
-        return domain;
-      }),
-    );
+  const updateDomainTasks = async (domainId: string, tasks: Task[]) => {
+    try {
+      // Update tasks in Supabase
+      const { error } = await supabase
+        .from("domains")
+        .update({ tasks })
+        .eq("id", domainId);
+
+      if (error) {
+        console.error("Error updating domain tasks in Supabase:", error);
+        return;
+      }
+
+      // Update local state
+      setDomains(
+        domains.map((domain) => {
+          if (domain.id === domainId) {
+            return {
+              ...domain,
+              tasks,
+            };
+          }
+          return domain;
+        }),
+      );
+    } catch (error) {
+      console.error("Error in updateDomainTasks:", error);
+    }
   };
 
-  const removeDomainTask = (domainId: string, taskId: string) => {
-    setDomains(
-      domains.map((domain) => {
-        if (domain.id === domainId) {
-          return {
-            ...domain,
-            tasks: domain.tasks.filter((task) => task.id !== taskId),
-          };
-        }
-        return domain;
-      }),
-    );
+  const removeDomainTask = async (domainId: string, taskId: string) => {
+    try {
+      // Find the domain and filter out the task
+      const domain = domains.find((d) => d.id === domainId);
+      if (!domain) return;
+
+      const updatedTasks = domain.tasks.filter((task) => task.id !== taskId);
+
+      // Update tasks in Supabase
+      const { error } = await supabase
+        .from("domains")
+        .update({ tasks: updatedTasks })
+        .eq("id", domainId);
+
+      if (error) {
+        console.error("Error removing domain task in Supabase:", error);
+        return;
+      }
+
+      // Update local state
+      setDomains(
+        domains.map((domain) => {
+          if (domain.id === domainId) {
+            return {
+              ...domain,
+              tasks: updatedTasks,
+            };
+          }
+          return domain;
+        }),
+      );
+    } catch (error) {
+      console.error("Error in removeDomainTask:", error);
+    }
   };
 
-  const removeDomain = (id: string) => {
-    setDomains(domains.filter((domain) => domain.id !== id));
+  const removeDomain = async (id: string) => {
+    try {
+      // Remove from Supabase
+      const { error } = await supabase.from("domains").delete().eq("id", id);
+
+      if (error) {
+        console.error("Error removing domain from Supabase:", error);
+        return;
+      }
+
+      // Update local state
+      setDomains(domains.filter((domain) => domain.id !== id));
+    } catch (error) {
+      console.error("Error in removeDomain:", error);
+    }
   };
 
   return (
@@ -234,7 +340,7 @@ export const DomainProvider: React.FC<{ children: React.ReactNode }> = ({
         removeDomain,
       }}
     >
-      {children}
+      {loading ? <div>Loading domains...</div> : children}
     </DomainContext.Provider>
   );
-};
+}
