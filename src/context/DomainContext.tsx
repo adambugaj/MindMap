@@ -6,6 +6,9 @@ import { v4 as uuidv4 } from "uuid";
 interface DomainContextType {
   domains: Domain[];
   addDomain: (domain: Omit<Domain, "id" | "createdAt" | "tasks">) => void;
+  addBulkDomains: (
+    domains: Omit<Domain, "id" | "createdAt" | "tasks">[],
+  ) => void;
   updateDomain: (domain: Domain) => void;
   updateDomainPosition: (
     id: string,
@@ -23,16 +26,15 @@ interface DomainContextType {
 
 const DomainContext = createContext<DomainContextType | undefined>(undefined);
 
-export const useDomainContext = () => {
+export function useDomainContext() {
   const context = useContext(DomainContext);
   if (!context) {
     throw new Error("useDomainContext must be used within a DomainProvider");
   }
   return context;
-};
+}
 
-// Using function declaration for consistent component exports to work with Fast Refresh
-function DomainProvider({ children }: { children: React.ReactNode }) {
+export function DomainProvider({ children }: { children: React.ReactNode }) {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,15 +85,24 @@ function DomainProvider({ children }: { children: React.ReactNode }) {
           ];
 
           // Add default domains to Supabase
-          for (const domain of defaultDomains) {
-            await supabase.from("domains").insert({
-              id: domain.id,
-              name: domain.name,
-              url: domain.url,
-              position: domain.position,
-              tasks: domain.tasks,
-              created_at: domain.createdAt,
-            });
+          const supabaseDomains = defaultDomains.map((domain) => ({
+            id: domain.id,
+            name: domain.name,
+            url: domain.url,
+            position: domain.position,
+            tasks: domain.tasks,
+            created_at: domain.createdAt,
+          }));
+
+          const { error: insertError } = await supabase
+            .from("domains")
+            .insert(supabaseDomains);
+
+          if (insertError) {
+            console.error(
+              "Error adding default domains to Supabase:",
+              insertError,
+            );
           }
 
           setDomains(defaultDomains);
@@ -328,11 +339,47 @@ function DomainProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const addBulkDomains = async (
+    domainsToAdd: Omit<Domain, "id" | "createdAt" | "tasks">[],
+  ) => {
+    try {
+      const newDomains: Domain[] = domainsToAdd.map((domain) => ({
+        ...domain,
+        id: uuidv4(),
+        tasks: DEFAULT_TASKS,
+        createdAt: new Date().toISOString(),
+      }));
+
+      // Add to Supabase in a single batch
+      const supabaseDomains = newDomains.map((domain) => ({
+        id: domain.id,
+        name: domain.name,
+        url: domain.url,
+        position: domain.position,
+        tasks: domain.tasks,
+        created_at: domain.createdAt,
+      }));
+
+      const { error } = await supabase.from("domains").insert(supabaseDomains);
+
+      if (error) {
+        console.error("Error adding bulk domains to Supabase:", error);
+        return;
+      }
+
+      // Update local state
+      setDomains([...domains, ...newDomains]);
+    } catch (error) {
+      console.error("Error in addBulkDomains:", error);
+    }
+  };
+
   return (
     <DomainContext.Provider
       value={{
         domains,
         addDomain,
+        addBulkDomains,
         updateDomain,
         updateDomainPosition,
         updateTaskStatus,
@@ -345,6 +392,3 @@ function DomainProvider({ children }: { children: React.ReactNode }) {
     </DomainContext.Provider>
   );
 }
-
-// Export the DomainProvider component
-export { DomainProvider };

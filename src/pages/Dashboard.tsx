@@ -3,10 +3,12 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import MobileView from "@/components/dashboard/MobileView";
 import AddDomainDialog from "@/components/dashboard/AddDomainDialog";
 import DomainList from "@/components/dashboard/DomainList";
+import MindMapCanvas from "@/components/dashboard/MindMapCanvas";
 
 const Dashboard = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "mindmap">("list");
 
   useEffect(() => {
     const handleResize = () => {
@@ -25,11 +27,19 @@ const Dashboard = () => {
           onZoomIn={() => {}}
           onZoomOut={() => {}}
           onResetView={() => {}}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
       )}
 
       <div className="flex-1 overflow-auto p-4">
-        {isMobile ? <MobileView /> : <DomainList />}
+        {isMobile ? (
+          <MobileView />
+        ) : viewMode === "list" ? (
+          <DomainList />
+        ) : (
+          <MindMapCanvas />
+        )}
       </div>
 
       <AddDomainDialog open={showAddDialog} onOpenChange={setShowAddDialog} />
